@@ -258,8 +258,9 @@ class DataSpec:
     def _default_get_num_tokens_in_batch(self, batch: Batch) -> int:
         # First try HuggingFace-style input dicts
         if isinstance(batch, Mapping) and 'input_ids' in batch:
+            num_non_padding_tokens = int(torch.sum(batch['input_ids'] == 0).item())
             samples_per_batch = batch['input_ids'].shape[0]
-            return batch['input_ids'].shape[1] * samples_per_batch
+            return num_non_padding_tokens
         # Then try dataset.max_seq_len
         elif hasattr(self.dataloader, 'dataset') and hasattr(self.dataloader.dataset, 'max_seq_len'):  # type: ignore
             samples_per_batch = self.get_num_samples_in_batch(batch)

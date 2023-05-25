@@ -2204,7 +2204,7 @@ class Trainer:
                         optimizer.zero_grad()
 
             # Tracker for gradient accumulation
-            current_batch_size = sum([self._train_data_spec.get_num_samples_in_batch(batch) for batch in microbatches])
+            current_batch_size = sum([self._train_data_spec.get_num_tokens_in_batch(batch) for batch in microbatches])
             # Cache batch, which will be overwritten by microbatches. Restore after microbatches complete
             current_batch = self.state.batch
 
@@ -2247,7 +2247,7 @@ class Trainer:
         # Cache the device batch, because `self.state.batch` gets overridden in microbatching loop
         device_batch = deepcopy(self.state.batch)
 
-        microbatch_num_samples = self._train_data_spec.get_num_samples_in_batch(self.state.batch)
+        microbatch_num_samples = self._train_data_spec.get_num_tokens_in_batch(self.state.batch)
         if self.deepspeed_enabled or not isinstance(self.state.model, DistributedDataParallel):
             sync_context = contextlib.nullcontext()
         elif self.state.auto_microbatching and not self.first_batch_complete:
