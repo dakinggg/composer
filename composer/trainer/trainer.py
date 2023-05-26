@@ -2205,12 +2205,20 @@ class Trainer:
 
             # Tracker for gradient accumulation
             current_batch_size = sum([self._train_data_spec.get_num_tokens_in_batch(batch) for batch in microbatches])
+
+            global_batch_size_tensor = self.state.device.tensor_to_device(torch.tensor(current_batch_size))
+            dist.all_reduce(global_batch_size_tensor, reduce_operation='SUM')
+            global_batch_num_samples = int(global_batch_size_tensor.item())
+
             # Cache batch, which will be overwritten by microbatches. Restore after microbatches complete
             current_batch = self.state.batch
 
             for microbatch_idx, self.state.batch in enumerate(microbatches):
                 is_final_microbatch = microbatch_idx + 1 == len(microbatches)
-                microbatch_loss_dict = self._train_microbatch(use_grad_scaling, current_batch_size, is_final_microbatch)
+                microbatch_loss_dict = self._train_microbatch(use_grad_scaling,
+                                                              current_batch_size,
+                                                              is_final_microbatch,
+                                                              global_batch_num_samples=global_batch_num_samples)
 
                 # Aggregate each loss in microbatch_loss_dict into total_loss_dict
                 for k, microbatch_loss in microbatch_loss_dict.items():
@@ -2231,8 +2239,8 @@ class Trainer:
 
             return total_loss_dict['loss/train/total']
 
-    def _train_microbatch(self, use_grad_scaling: bool, current_batch_size: int,
-                          is_final_microbatch: bool) -> Dict[str, torch.Tensor]:
+    def _train_microbatch(self, use_grad_scaling: bool, current_batch_size: int, is_final_microbatch: bool,
+                          global_batch_num_samples: int) -> Dict[str, torch.Tensor]:
         """Train and compute the loss of ``state.batch``, which is assumed to be a single microbatch.
 
         Args:
@@ -2336,7 +2344,8 @@ class Trainer:
 
             else:
                 # Scale loss based on the number of samples in the microbatch to maintain gradient numerics
-                microbatch_loss.mul_(microbatch_num_samples / current_batch_size)
+                microbatch_loss.mul_(microbatch_num_samples / current_batch_size).mul_(
+                    microbatch_num_samples / global_batch_num_samples).mul_(dist.get_world_size())
                 microbatch_loss.backward(create_graph=self._backwards_create_graph)
 
             self.engine.run_event(Event.AFTER_BACKWARD)
