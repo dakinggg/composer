@@ -2334,7 +2334,9 @@ class Trainer:
 
             # For each loss to log: detach, clone, mean, then multiply by (microbatch size) / (batch size)
             for k, loss in microbatch_loss_dict.items():
-                microbatch_loss_dict[k] = loss.detach().clone().mean() * (microbatch_num_samples / current_batch_size)
+                microbatch_loss_dict[k] = loss.detach().clone().mean() * (
+                    microbatch_num_samples / current_batch_size) * (microbatch_num_samples /
+                                                                    global_batch_num_samples) * dist.get_world_size()
 
             if use_grad_scaling:
                 microbatch_loss = cast(torch.Tensor, self.state.scaler.scale(microbatch_loss))
