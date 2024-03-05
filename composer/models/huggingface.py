@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, Set, Tuple
 import torch
 from torchmetrics import Metric
 
-from composer.metrics import InContextLearningMetric, InContextLearningQAAccuracy
 from composer.models.base import ComposerModel
 from composer.utils import MissingConditionalImportError, dist, get_file, import_object, is_model_fsdp, safe_torch_load
 
@@ -467,10 +466,20 @@ class HuggingFaceModel(ComposerModel):
                 raise ValueError(
                     'Generation eval cannot be used without providing a tokenizer to the model constructor.')
 
+            if 'generation_length' in batch:
+                warnings.warn(
+                    ('`generation_length` has been deprecated in favor of passing `max_new_tokens` directly into `generation_kwargs`.'
+                     'It will be removed in v0.21'),
+                    DeprecationWarning,
+                )
+                if 'generation_kwargs' in batch:
+                    batch['generation_kwargs']['max_new_tokens'] = batch['generation_length']
+                else:
+                    batch['generation_kwargs'] = {'max_new_tokens': batch['generation_length']}
+
             self.labels = batch.pop('labels')
             generation = self.generate(batch['input_ids'],
                                        attention_mask=batch['attention_mask'],
-                                       max_new_tokens=batch['generation_length'],
                                        synced_gpus=dist.get_world_size() > 1,
                                        **batch.get('generation_kwargs', {}))
 
@@ -532,14 +541,10 @@ class HuggingFaceModel(ComposerModel):
         return metrics if metrics else {}
 
     def update_metric(self, batch: Any, outputs: Any, metric: Metric) -> None:
-        if isinstance(metric, InContextLearningQAAccuracy):
-            assert self.labels is not None
-            metric.update(batch=batch, outputs=outputs, labels=self.labels)  # pyright: ignore [reportGeneralTypeIssues]
-        elif isinstance(metric, InContextLearningMetric):
-            assert self.labels is not None
-            metric.update(batch, outputs, self.labels)  # pyright: ignore [reportGeneralTypeIssues]
+        if getattr(metric, 'needs_batch', False):
+            metric.update(batch=batch, outputs=outputs, labels=self.labels)
         else:
-            metric.update(outputs, self.labels)  # pyright: ignore [reportGeneralTypeIssues]
+            metric.update(outputs, self.labels)
 
     def get_metadata(self):
         model_output = {}
