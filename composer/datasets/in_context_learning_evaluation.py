@@ -292,7 +292,7 @@ class InContextLearningDataset(Dataset):
         hf_loading_vars: Optional[Dict] = None,
         hf_parsing_map: Optional[Dict] = None,
         generation_kwargs: Optional[Dict] = None,
-        num_proc: Optional[int] = None,
+        num_proc: Optional[int] = 32,
     ):
         try:
             import datasets
