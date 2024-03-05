@@ -290,6 +290,7 @@ class InContextLearningDataset(Dataset):
         hf_loading_vars: Optional[Dict] = None,
         hf_parsing_map: Optional[Dict] = None,
         generation_kwargs: Optional[Dict] = None,
+        num_proc: Optional[int] = None,
     ):
         try:
             import datasets
@@ -339,6 +340,7 @@ class InContextLearningDataset(Dataset):
                 'prompt_string': prompt_string,
                 'fewshot_rng': fewshot_rng,
             },
+            num_proc=num_proc,
         )
 
     def __getitem__(self, index: int) -> Dict:
