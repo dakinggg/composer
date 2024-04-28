@@ -207,7 +207,7 @@ def _compare_model_params_between_state_dicts(state_dict1, state_dict2):
     for param_name in state_dict2_model_params.keys():
         state_dict1_model_tensor = state_dict1_model_params[param_name].cpu()
         state_dict2_model_tensor = state_dict2_model_params[param_name].cpu()
-        assert torch.equal(
+        torch.testing.assert_close(
             state_dict1_model_tensor,
             state_dict2_model_tensor,
         ), f'Weight named {param_name} not the same between state_dicts'

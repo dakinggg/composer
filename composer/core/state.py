@@ -1235,10 +1235,15 @@ class State(Serializable):
         if model_on_rank:
             if version.parse(torch.__version__) >= version.parse('2.3.0') and dist.is_initialized():
                 from torch.distributed.checkpoint.state_dict import StateDictOptions, set_model_state_dict
+                from torch.distributed.fsdp._runtime_utils import _lazy_init
+                for module in self.model.modules():
+                    if isinstance(module, FSDP):
+                        _lazy_init(module, module)
+
                 set_model_state_dict(
                     model=self.model,
                     model_state_dict=state_dict['model'],
-                    options=StateDictOptions(strict=strict, cpu_offload=True),
+                    options=StateDictOptions(full_state_dict=self.fsdp_state_dict_type == 'full', strict=strict, cpu_offload=True),
                 )
             else:
                 missing_keys, unexpected_keys = [], []
@@ -1299,13 +1304,27 @@ class State(Serializable):
         """
         if version.parse(torch.__version__) >= version.parse('2.3.0') and dist.is_initialized():
             from torch.distributed.checkpoint.state_dict import StateDictOptions, set_optimizer_state_dict
+
             optimizer = self.optimizers[0]
-            set_optimizer_state_dict(
-                model=self.model,
-                optimizers=optimizer,
-                optim_state_dict=state_dict['optimizers'].get(type(optimizer).__qualname__, {}),
-                options=StateDictOptions(strict=strict, cpu_offload=True),
-            )
+            optim_state_dict = {}
+            if state_dict.get('optimizers') is not None:
+                optim_state_dict = state_dict['optimizers'].get(type(optimizer).__qualname__, {})
+
+            if self.load_fsdp_monolith_rank0_only:
+                assert optim_state_dict is not None
+                with fsdp_state_dict_type_context(module=self.model, state_dict_type=self.fsdp_state_dict_type):
+                    optim_state_dict = FSDP.optim_state_dict_to_load(  #  type: ignore
+                        optim_state_dict=optim_state_dict, model=self.model, optim=optimizer,
+                    )
+                assert optim_state_dict is not None
+                optimizer.load_state_dict(optim_state_dict)
+            else:
+                set_optimizer_state_dict(
+                    model=self.model,
+                    optimizers=optimizer,
+                    optim_state_dict=state_dict['optimizers'].get(type(optimizer).__qualname__, {}),
+                    options=StateDictOptions(full_state_dict=self.fsdp_state_dict_type == 'full', strict=strict, cpu_offload=True),
+                )
         else:
             serialized_value = state_dict['optimizers']
             for optimizer in ensure_tuple(self.optimizers):
