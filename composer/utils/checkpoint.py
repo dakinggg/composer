@@ -173,6 +173,9 @@ class FileSystemReaderWithValidation(dist_cp.FileSystemReader):
             path = os.path.join(self.path, item_md.relative_path)
             path_to_specs.setdefault(path, []).append((item_md.offset, item_md.length))
         for path, spec in path_to_specs.items():
+            print("+"*30)
+            print(path)
+            print("+"*30)
             _ensure_valid_checkpoint(path, spec)
         return super().read_data(plan, planner)
 
