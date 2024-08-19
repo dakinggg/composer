@@ -685,6 +685,9 @@ class HuggingFaceModel(ComposerModel):
             # for more info.
             # Note: We use recurse=False here so that we only summon full params for the LM head, not the entire model.
             with FSDP.summon_full_params(self.model, writeback=False, recurse=False):
+                print(input_ids.shape)
+                print(kwargs)
+                print(pad_token_id)
                 return self.model.generate(input_ids=input_ids, pad_token_id=pad_token_id, **kwargs)
         else:
             return self.model.generate(input_ids=input_ids, pad_token_id=pad_token_id, **kwargs)
