@@ -688,6 +688,7 @@ class HuggingFaceModel(ComposerModel):
                 print(input_ids.shape)
                 print(kwargs)
                 print(pad_token_id)
+                print(kwargs['attention_mask'].shape)
                 return self.model.generate(input_ids=input_ids, pad_token_id=pad_token_id, **kwargs)
         else:
             return self.model.generate(input_ids=input_ids, pad_token_id=pad_token_id, **kwargs)
