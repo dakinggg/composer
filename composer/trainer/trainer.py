@@ -2881,6 +2881,7 @@ class Trainer:
 
         # Cache the device batch, because `self.state.batch` gets overridden in microbatching loop.
         # Any in-place changes to a microbatch will be reflected in the device batch.
+        torch.set_printoptions(threshold=torch.inf)
         device_batch = self.state.batch
         print(device_batch)
 
