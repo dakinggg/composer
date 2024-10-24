@@ -2883,8 +2883,8 @@ class Trainer:
         # Any in-place changes to a microbatch will be reflected in the device batch.
         torch.set_printoptions(threshold=torch.inf)
         device_batch = self.state.batch
-        labels = device_batch['labels'].to('cuda:0')
-        all_labels = dist.all_gather(labels)
+        labels = device_batch['labels'].tolist()
+        all_labels = dist.all_gather_object(labels)
         print(all_labels)
 
         # Define sync hook for FSDP modules if automicrobatching is on
