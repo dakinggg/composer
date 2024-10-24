@@ -3084,6 +3084,7 @@ class Trainer:
             # Cache batch, which will be overwritten by microbatches. Restore after microbatches complete
             current_batch = self.state.batch
 
+            microbatch_losses_accounting = []
             for microbatch_idx, self.state.batch in enumerate(microbatches):
                 self.state.batch = self.state.device.batch_to_device(self.state.batch)
                 is_final_microbatch = microbatch_idx + 1 == len(microbatches)
@@ -3095,6 +3096,11 @@ class Trainer:
                     if loss_key not in total_loss_dict:
                         total_loss_dict[loss_key] = self.state.device.tensor_to_device(torch.zeros(size=(1,)))
                     total_loss_dict[loss_key] += microbatch_loss
+                    microbatch_losses_accounting.append(microbatch_loss)
+
+            # Gather all microbatch losses from all ranks to print them out
+            all_microbatch_losses_accounting = dist.all_gather_object(microbatch_losses_accounting)
+            print(all_microbatch_losses_accounting)
 
             # Restore batch
             self.state.batch = current_batch
