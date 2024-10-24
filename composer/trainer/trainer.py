@@ -2882,6 +2882,7 @@ class Trainer:
         # Cache the device batch, because `self.state.batch` gets overridden in microbatching loop.
         # Any in-place changes to a microbatch will be reflected in the device batch.
         device_batch = self.state.batch
+        print(device_batch)
 
         # Define sync hook for FSDP modules if automicrobatching is on
         sync_hook = _create_sync_hook(self.state)
