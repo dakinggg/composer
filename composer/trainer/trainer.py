@@ -3068,6 +3068,11 @@ class Trainer:
 
             # Tracker for gradient accumulation
             if self.accumulate_train_batch_on_tokens:
+                mbs = [
+                    self._train_data_spec.get_num_tokens_in_batch(b, token_type='loss_generating') for b in microbatches
+                ]
+                mbs_all = dist.all_gather_object(mbs)
+                print("MB SIZES:", mbs_all)
                 current_batch_size = sum([
                     self._train_data_spec.get_num_tokens_in_batch(b, token_type='loss_generating') for b in microbatches
                 ])
