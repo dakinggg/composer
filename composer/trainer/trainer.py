@@ -3145,6 +3145,9 @@ class Trainer:
             )
         else:
             microbatch_size = self._train_data_spec.get_num_samples_in_batch(self.state.batch)
+
+        print("SIZES: ", microbatch_size, current_batch_size)
+
         if self.state.deepspeed_enabled or not isinstance(self.state.model, DistributedDataParallel):
             sync_context = contextlib.nullcontext()
         elif self.state.auto_microbatching and not self.first_train_batch_complete:
