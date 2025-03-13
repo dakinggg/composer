@@ -391,6 +391,7 @@ def prepare_fsdp_module(
     # may make calls to sharded submodules. If we only wrap the submodules, then any call that ComposerModel makes
     # to a FSDP-wrapped submodule's `forward()` function will be safe and all-gather the necessary weights before `forward()`.
     for obj_name, obj in model.named_children():
+        log.debug(f'Wrapping {obj_name} with FullyShardedDataParallel')
         if not isinstance(obj, (Metric, MetricCollection)):
 
             # Skip wrapping submodules which are explicitly marked with no wrap
@@ -425,6 +426,7 @@ def prepare_fsdp_module(
             del tied_pointers
 
             def _param_init_fn(module: torch.nn.Module) -> None:
+                log.debug(f'Initializing parameters for {module}')
                 # If we do not have any parameters or buffers on meta device managed by this module directly, we do not need to call the parameter init function.
                 # It is assumed that whatever process moved the parameters off of meta device initialized them.
                 # We expect this to occur if we have tied weights, as the second module will already have the weights initialized.
@@ -443,8 +445,10 @@ def prepare_fsdp_module(
 
                 # Run the specified initialization
                 if hasattr(obj, 'param_init_fn') and isinstance(obj.param_init_fn, Callable):
+                    log.debug('param init')
                     obj.param_init_fn(module)
                 elif hasattr(module, 'reset_parameters') and isinstance(module.reset_parameters, Callable):
+                    log.debug('reset')
                     module.reset_parameters()
                 else:
                     raise ValueError(
@@ -465,6 +469,7 @@ def prepare_fsdp_module(
 
             _auto_wrap_policy = CustomPolicy(lambda_fn)
 
+            log.debug("Wrapping module with FSDP")
             fsdp_obj = FullyShardedDataParallel(
                 obj,
                 process_group=process_group,
@@ -533,6 +538,7 @@ def prepare_fsdp_module(
 
             # Activation Checkpointing
             if activation_checkpointing or activation_cpu_offload:
+                log.debug("Entering activation checkpointing section")
                 # FP8 TE requires using the TE checkpoint function, FSDP activation checkpointing only works with TE non-reentrant checkpointing
                 if te_checkpoint_wrapper:
                     assert not activation_checkpointing_reentrant, 'TE checkpoint only works with non-reentrant checkpointing'
@@ -596,6 +602,7 @@ def prepare_fsdp_module(
                         return obj.activation_checkpointing_fn(module)
                     return False
 
+                log.debug("Applying activation checkpointing")
                 apply_activation_checkpointing(
                     fsdp_obj,
                     checkpoint_wrapper_fn=second_wrap_fn,  # type: ignore
