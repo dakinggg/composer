@@ -503,6 +503,7 @@ class MLFlowLogger(LoggerDestination):
             import mlflow
 
             if flavor == 'transformers':
+                print(kwargs)
                 mlflow.transformers.log_model(**kwargs)
             else:
                 raise NotImplementedError(f'flavor {flavor} not supported.')
