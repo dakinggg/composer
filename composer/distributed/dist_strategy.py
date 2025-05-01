@@ -623,6 +623,11 @@ def prepare_fsdp_module(
         log.info(f'FSDP: Using state_dict_type={state_dict_type}')
         log.info(f'FSDP: Using sharded_ckpt_prefix_dir={sharded_ckpt_prefix_dir}')
 
+    print(model.model.model.norm)
+    print(model.model.model.norm.weight)
+    with FullyShardedDataParallel.summon_full_params(model.model):
+        print(model.model.model.norm.weight)
+
     # Rebuild optimizer now that parameters are sharded
     if optimizers:
         optim = ensure_tuple(optimizers)[0]
