@@ -425,11 +425,13 @@ def prepare_fsdp_module(
             del tied_pointers
 
             def _param_init_fn(module: torch.nn.Module) -> None:
+                print("In param init for module", module)
                 # If we do not have any parameters or buffers on meta device managed by this module directly, we do not need to call the parameter init function.
                 # It is assumed that whatever process moved the parameters off of meta device initialized them.
                 # We expect this to occur if we have tied weights, as the second module will already have the weights initialized.
                 is_meta = any(param.is_meta for param in module.parameters(recurse=False)
                              ) or any(buffer.is_meta for buffer in module.buffers(recurse=False))
+                print("Is meta", is_meta)
                 if not is_meta:
                     return
 
