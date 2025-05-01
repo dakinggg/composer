@@ -631,7 +631,7 @@ def prepare_fsdp_module(
     with FullyShardedDataParallel.summon_full_params(model.model):
         for module in model.modules():
             if hasattr(module, 'weight') and module.weight is not None:
-                if torch.isnan(weight).any():
+                if torch.isnan(module.weight).any():
                     print(f'Weight {module.weight} is NaN')
 
     # Rebuild optimizer now that parameters are sharded
