@@ -605,7 +605,7 @@ class HuggingFaceModel(ComposerModel):
             original_model_config: PretrainedConfig = self.config
             original_model_config.save_pretrained(model_dir)
             if self.tokenizer is not None:
-                self.tokenizer.save_pretrained(tokenizer_dir)
+                self.tokenizer.save_pretrained(tokenizer_dir, save_jinja_files=False)
 
             with open(model_dir / 'config.json') as _config_file:
                 model_config = json.load(_config_file)
