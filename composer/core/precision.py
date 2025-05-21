@@ -77,7 +77,7 @@ def get_precision_context(
             yield
     elif precision == Precision.AMP_BF16:
         if torch.cuda.is_available():
-            with torch.autocast('cuda', dtype=torch.bfloat16, enabled=True):
+            with torch.autocast('cuda', dtype=torch.bfloat16, enabled=True, cache_enabled=False):
                 yield
         elif is_xla_installed():
             with torch.autocast('xla', dtype=torch.bfloat16):
