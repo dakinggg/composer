@@ -642,7 +642,8 @@ def _upload_worker(
                     exception_queue.put_nowait(e)
                     raise e
             log.info('Uploading file %s to %s', file_path_to_upload, uri)
-            try:
+            try:        
+                logging.getLogger('botocore').setLevel('DEBUG')
                 remote_backend.upload_object(
                     object_name=remote_file_name,
                     filename=file_path_to_upload,
